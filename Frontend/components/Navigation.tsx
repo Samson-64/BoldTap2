@@ -2,14 +2,20 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Menu, X, LogOut } from "lucide-react";
+import { Menu, X, LogOut, LayoutGrid } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, selectedService, clearSelectedService } = useAuth();
+  const router = useRouter();
+
+  const dashboardHref = selectedService
+    ? `/dashboard/${selectedService}`
+    : "/select-service";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -70,7 +76,7 @@ export default function Navigation() {
             {user ? (
               <>
                 <Link
-                  href="/dashboard"
+                  href={dashboardHref}
                   className={`transition-colors font-medium ${
                     isScrolled
                       ? "text-gray-700 hover:text-black"
@@ -79,6 +85,21 @@ export default function Navigation() {
                 >
                   Dashboard
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearSelectedService();
+                    router.push("/select-service");
+                  }}
+                  className={`flex items-center space-x-2 transition-colors font-medium ${
+                    isScrolled
+                      ? "text-gray-700 hover:text-black"
+                      : "text-gray-300 hover:text-white"
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  <span>Switch service</span>
+                </button>
                 <button
                   onClick={logout}
                   className={`flex items-center space-x-2 transition-colors font-medium ${
@@ -154,7 +175,7 @@ export default function Navigation() {
             {user ? (
               <>
                 <Link
-                  href="/dashboard"
+                  href={dashboardHref}
                   className={`block transition-colors font-medium ${
                     isScrolled
                       ? "text-gray-700 hover:text-black"
@@ -164,6 +185,22 @@ export default function Navigation() {
                 >
                   Dashboard
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearSelectedService();
+                    router.push("/select-service");
+                    setIsMobileMenuOpen(false);
+                  }}
+                  className={`w-full flex items-center justify-center space-x-2 transition-colors font-medium ${
+                    isScrolled
+                      ? "text-gray-700 hover:text-black"
+                      : "text-gray-300 hover:text-white"
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  <span>Switch service</span>
+                </button>
                 <button
                   onClick={() => {
                     logout();

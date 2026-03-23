@@ -75,13 +75,19 @@ export async function register(
     };
   }
 
-  // Create new user
-  const newUser: User & { password: string } = {
+  // Create new user (extended fields for admin registry — see userRegistry)
+  const newUser: User & {
+    password: string;
+    paymentStatus: "pending";
+    acquiredService: null;
+  } = {
     id: Date.now().toString(),
     name,
     email,
     phone,
     password, // In production, this would be hashed
+    paymentStatus: "pending",
+    acquiredService: null,
   };
 
   // Save user to localStorage (in production, this would be a backend API call)
