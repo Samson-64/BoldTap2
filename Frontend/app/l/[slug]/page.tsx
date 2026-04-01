@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import LoyaltyCard from "@/components/LoyaltyCard";
 import { getPublicLoyaltyCardBySlug } from "@/contexts/lib/loyaltyCard";
@@ -17,23 +17,28 @@ export default function PublicLoyaltyPage() {
   const params = useParams();
   const slug = typeof params.slug === "string" ? params.slug : "";
   const [refresh, setRefresh] = useState(0);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
 
   const merchantId = useMemo(
-    () => (slug ? findUserIdByLoyaltySlug(slug) : null),
-    [slug],
+    () => (slug && isHydrated ? findUserIdByLoyaltySlug(slug) : null),
+    [slug, isHydrated],
   );
 
   const pack = useMemo(() => {
-    if (!slug) return null;
+    if (!slug || !isHydrated) return null;
     return getPublicLoyaltyCardBySlug(slug);
-  }, [slug, refresh]);
+  }, [slug, isHydrated, refresh]);
 
   const visitor = useMemo(() => {
-    if (!merchantId || typeof window === "undefined") return null;
+    if (!merchantId || !isHydrated) return null;
     const vid = getStoredVisitorCustomerId(merchantId);
     if (!vid) return null;
     return getCustomer(merchantId, vid);
-  }, [merchantId, refresh]);
+  }, [merchantId, isHydrated, refresh]);
 
   const handleJoin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +53,15 @@ export default function PublicLoyaltyPage() {
     setStoredVisitorCustomerId(merchantId, c.id);
     setRefresh((x) => x + 1);
   };
+
+  // Show loading state during hydration to prevent mismatch
+  if (!isHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <p className="text-gray-600">Loading...</p>
+      </div>
+    );
+  }
 
   if (!slug) {
     return (
