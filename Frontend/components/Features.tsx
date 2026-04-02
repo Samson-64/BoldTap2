@@ -1,9 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useInView } from "framer-motion";
 import { useRef } from "react";
-import { Smartphone, QrCode, RefreshCw, Smartphone as Phone, Users } from "lucide-react";
+import { motion, useInView } from "framer-motion";
+import { Smartphone, QrCode, RefreshCw, Users } from "lucide-react";
 
 const features = [
   {
@@ -22,7 +21,7 @@ const features = [
     description: "Update your profile on the fly to suit any new connection.",
   },
   {
-    icon: Phone,
+    icon: Users,
     title: "Cross Compatible",
     description: "Works on iOS & Android devices.",
   },
@@ -33,6 +32,21 @@ const features = [
   },
 ];
 
+// Animation variants
+const containerVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.1, duration: 0.6 },
+  }),
+};
+
 export default function Features() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
@@ -42,8 +56,9 @@ export default function Features() {
       <div className="max-w-7xl mx-auto">
         <motion.div
           ref={ref}
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          variants={containerVariants}
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
@@ -58,9 +73,10 @@ export default function Features() {
             return (
               <motion.div
                 key={feature.title}
-                initial={{ opacity: 0, y: 30 }}
-                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-                transition={{ duration: 0.6, delay: index * 0.1 }}
+                custom={index}
+                variants={itemVariants}
+                initial="hidden"
+                animate={isInView ? "visible" : "hidden"}
                 className="p-8 rounded-xl border border-gray-200 hover:border-black transition-colors bg-white"
               >
                 <div className="w-16 h-16 bg-black rounded-lg flex items-center justify-center mb-6">

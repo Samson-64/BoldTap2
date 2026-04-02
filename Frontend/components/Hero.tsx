@@ -2,6 +2,22 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
+
+// Animation variants for reuse
+const fadeInUp = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0 },
+};
+
+const floatAnimation = {
+  y: [0, -20, 0],
+  transition: {
+    duration: 3,
+    repeat: Infinity,
+    ease: "easeInOut",
+  },
+};
 
 export default function Hero() {
   return (
@@ -66,20 +82,16 @@ export default function Hero() {
             <div className="pointer-events-none absolute inset-y-10 -left-10 -right-4 rounded-full bg-gradient-radial from-white/15 via-white/0 to-transparent blur-3xl" />
 
             <motion.div
-              animate={{
-                y: [0, -20, 0],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
+              animate={floatAnimation}
               className="relative w-full max-w-lg"
             >
-              <img
+              <Image
                 src="/images/hero-products.png"
                 alt="BoldTap Digital Business Card Products"
+                width={500}
+                height={600}
                 className="w-full h-auto object-contain drop-shadow-[0_25px_60px_rgba(0,0,0,0.8)]"
+                priority
               />
             </motion.div>
           </motion.div>

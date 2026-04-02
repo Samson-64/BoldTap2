@@ -50,8 +50,8 @@ async function register(input) {
                 error: "Email already registered",
             };
         }
-        // Hash password
-        const hashedPassword = await bcrypt_1.default.hash(input.password, 10);
+        // Hash password with secure salt rounds
+        const hashedPassword = await bcrypt_1.default.hash(input.password, errors_1.BCRYPT_SALT_ROUNDS);
         // Create user
         const user = await db_1.db.users.create({
             name: input.name,
@@ -152,11 +152,16 @@ async function getUserById(userId) {
 // Update user profile
 async function updateProfile(userId, data) {
     try {
-        const updated = await db_1.db.users.update(userId, {
-            name: data.name,
-            phone: data.phone,
-            password: "",
-        });
+        const updates = {};
+        if (data.name !== undefined) {
+            updates.name = data.name;
+        }
+        if (data.phone !== undefined) {
+            updates.phone = data.phone;
+        }
+        const updated = Object.keys(updates).length > 0
+            ? await db_1.db.users.update(userId, updates)
+            : await db_1.db.users.findById(userId);
         if (!updated) {
             return { success: false, error: "User not found" };
         }
@@ -195,8 +200,8 @@ async function changePassword(userId, oldPassword, newPassword) {
         if (!validation.valid) {
             return { success: false, error: validation.error };
         }
-        // Hash and save new password
-        const hashedPassword = await bcrypt_1.default.hash(newPassword, 10);
+        // Hash and save new password with secure salt rounds
+        const hashedPassword = await bcrypt_1.default.hash(newPassword, errors_1.BCRYPT_SALT_ROUNDS);
         await db_1.db.users.update(userId, { password: hashedPassword });
         return { success: true };
     }
@@ -219,7 +224,10 @@ function verifyToken(token) {
 }
 // Generate JWT token
 function generateToken(data) {
-    return jsonwebtoken_1.default.sign(data, env_1.JWT_SECRET, { expiresIn: env_1.JWT_EXPIRES_IN });
+    return jsonwebtoken_1.default.sign(data, env_1.JWT_SECRET, {
+        expiresIn: env_1.JWT_EXPIRES_IN,
+        algorithm: env_1.JWT_ALGORITHM,
+    });
 }
 // Check if email exists
 async function emailExists(email) {

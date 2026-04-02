@@ -133,7 +133,16 @@ export function validateRequiredFields(
   data: Record<string, any>,
   fields: string[],
 ): ValidationError | null {
-  const missing = fields.filter((field) => !data[field]);
+  const missing = fields.filter((field) => {
+    const value = data[field];
+    if (value === undefined || value === null) {
+      return true;
+    }
+    if (typeof value === "string" && value.trim() === "") {
+      return true;
+    }
+    return false;
+  });
   if (missing.length > 0) {
     return new ValidationError(
       `Missing required fields: ${missing.join(", ")}`,
@@ -157,6 +166,12 @@ export function validatePassword(password: string): {
       error: "Password must be at least 8 characters long",
     };
   }
+  if (password.length > 128) {
+    return {
+      valid: false,
+      error: "Password must not exceed 128 characters",
+    };
+  }
   if (!/[a-zA-Z]/.test(password)) {
     return {
       valid: false,
@@ -169,11 +184,19 @@ export function validatePassword(password: string): {
       error: "Password must contain at least one uppercase letter",
     };
   }
-  if (!/[0-9]/.test(password)) {
+  if (!/[0-9!@#$%^&*(),.?":{}|<>]/.test(password)) {
     return {
       valid: false,
-      error: "Password must contain at least one digit",
+      error: "Password must contain at least one number or special character",
     };
   }
   return { valid: true };
 }
+
+// Input sanitization helper
+export function sanitizeInput(input: string): string {
+  return input.trim().replace(/[<>]/g, "");
+}
+
+// Bcrypt salt rounds for production (higher = more secure but slower)
+export const BCRYPT_SALT_ROUNDS = process.env.NODE_ENV === "production" ? 12 : 10;

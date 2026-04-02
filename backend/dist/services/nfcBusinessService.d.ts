@@ -15,13 +15,13 @@ export declare function createNfcBusinessProfile(userId: string, input: CreateNf
 }>;
 export declare function getNfcProfileBySlug(slug: string): Promise<NfcBusinessProfile | null>;
 export declare function getUserNfcProfile(userId: string): Promise<NfcBusinessProfile | null>;
-export declare function updateNfcProfile(profileId: string, data: Partial<CreateNfcBusinessInput>): Promise<{
+export declare function updateNfcProfile(userId: string, profileId: string, data: Partial<CreateNfcBusinessInput>): Promise<{
     success: boolean;
     data?: NfcBusinessProfile;
     error?: string;
 }>;
 export declare function getNfcProfileById(profileId: string): Promise<NfcBusinessProfile | null>;
-export declare function deleteNfcProfile(profileId: string): Promise<{
+export declare function deleteNfcProfile(userId: string, profileId: string): Promise<{
     success: boolean;
     error?: string;
 }>;

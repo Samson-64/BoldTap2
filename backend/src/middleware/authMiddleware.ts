@@ -4,7 +4,7 @@
 
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-import { JWT_SECRET } from "../config/env";
+import { JWT_SECRET, JWT_ALGORITHM } from "../config/env";
 import { db } from "../config/db";
 import { AuthenticationError } from "../utils/errors";
 
@@ -35,9 +35,14 @@ export async function authenticate(
 
     const token = parts[1];
 
-    const decoded = jwt.verify(token, JWT_SECRET) as unknown as {
+    // Verify token with explicit algorithm
+    const decoded = jwt.verify(token, JWT_SECRET, {
+      algorithms: [JWT_ALGORITHM as jwt.Algorithm],
+    }) as unknown as {
       userId: string;
       email: string;
+      iat?: number;
+      exp?: number;
     };
 
     // Verify user exists in database
@@ -60,6 +65,15 @@ export async function authenticate(
         success: false,
         error: "Invalid token",
         message: error.message,
+      });
+      return;
+    }
+
+    if (error instanceof jwt.TokenExpiredError) {
+      res.status(401).json({
+        success: false,
+        error: "Token expired",
+        message: "Your session has expired. Please login again.",
       });
       return;
     }

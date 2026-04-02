@@ -4,8 +4,8 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { db } from "../config/db";
-import { JWT_SECRET, JWT_EXPIRES_IN } from "../config/env";
-import { validatePassword, validateEmail } from "../utils/errors";
+import { JWT_SECRET, JWT_EXPIRES_IN, JWT_ALGORITHM } from "../config/env";
+import { validatePassword, validateEmail, BCRYPT_SALT_ROUNDS } from "../utils/errors";
 import type { UserProfile } from "../types/index";
 
 interface RegisterInput {
@@ -69,8 +69,8 @@ export async function register(input: RegisterInput): Promise<AuthResponse> {
       };
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(input.password, 10);
+    // Hash password with secure salt rounds
+    const hashedPassword = await bcrypt.hash(input.password, BCRYPT_SALT_ROUNDS);
 
     // Create user
     const user = await db.users.create({
@@ -181,11 +181,18 @@ export async function updateProfile(
   data: { name?: string; phone?: string },
 ): Promise<{ success: boolean; user?: UserProfile; error?: string }> {
   try {
-    const updated = await db.users.update(userId, {
-      name: data.name,
-      phone: data.phone,
-      password: "",
-    });
+    const updates: { name?: string; phone?: string } = {};
+    if (data.name !== undefined) {
+      updates.name = data.name;
+    }
+    if (data.phone !== undefined) {
+      updates.phone = data.phone;
+    }
+
+    const updated =
+      Object.keys(updates).length > 0
+        ? await db.users.update(userId, updates)
+        : await db.users.findById(userId);
 
     if (!updated) {
       return { success: false, error: "User not found" };
@@ -233,8 +240,8 @@ export async function changePassword(
       return { success: false, error: validation.error };
     }
 
-    // Hash and save new password
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    // Hash and save new password with secure salt rounds
+    const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
     await db.users.update(userId, { password: hashedPassword });
 
     return { success: true };
@@ -261,7 +268,10 @@ function generateToken(data: TokenData): string {
   return jwt.sign(
     data,
     JWT_SECRET as string,
-    { expiresIn: JWT_EXPIRES_IN } as Parameters<typeof jwt.sign>[2],
+    {
+      expiresIn: JWT_EXPIRES_IN,
+      algorithm: JWT_ALGORITHM as jwt.Algorithm,
+    } as jwt.SignOptions,
   );
 }
 

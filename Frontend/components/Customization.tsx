@@ -1,9 +1,13 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useInView } from "framer-motion";
 import { useRef } from "react";
+import { motion, useInView } from "framer-motion";
 import Link from "next/link";
+
+const containerVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0 },
+};
 
 export default function Customization() {
   const ref = useRef(null);
@@ -14,8 +18,9 @@ export default function Customization() {
       <div className="max-w-7xl mx-auto">
         <motion.div
           ref={ref}
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          variants={containerVariants}
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
           transition={{ duration: 0.8 }}
           className="text-center space-y-8 max-w-4xl mx-auto"
         >

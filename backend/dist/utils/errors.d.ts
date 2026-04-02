@@ -30,4 +30,6 @@ export declare function validatePassword(password: string): {
     valid: boolean;
     error?: string;
 };
+export declare function sanitizeInput(input: string): string;
+export declare const BCRYPT_SALT_ROUNDS: number;
 //# sourceMappingURL=errors.d.ts.map

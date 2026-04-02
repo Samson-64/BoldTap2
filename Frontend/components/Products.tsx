@@ -1,8 +1,8 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useInView } from "framer-motion";
 import { useRef } from "react";
+import { motion, useInView } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 
 const products = [
@@ -54,17 +54,31 @@ const products = [
     name: "Bold Loyalty Card",
     oldPrice: "60,000 TZS",
     price: "55,000 TZS",
-    description: "Premium ring design with elegant NFC technology integration.",
-    image: { src: "/images/bold-ring.png", alt: "Bold Ring" },
+    description: "Digital loyalty card with tap-to-collect points.",
+    image: { src: "/images/bold-loyalty.png", alt: "Bold Loyalty Card" },
   },
   {
     name: "Bold E-Invitation Card",
     oldPrice: "50,000 TZS",
     price: "45,000 TZS",
-    description: "Premium ring design with elegant NFC technology integration.",
-    image: { src: "/images/bold-ring.png", alt: "Bold Ring" },
+    description: "Elegant digital invitation for your special events.",
+    image: { src: "/images/bold-einvitation.png", alt: "Bold E-Invitation" },
   },
 ];
+
+const containerVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.1, duration: 0.6 },
+  }),
+};
 
 export default function Products() {
   const ref = useRef(null);
@@ -75,8 +89,9 @@ export default function Products() {
       <div className="max-w-7xl mx-auto">
         <motion.div
           ref={ref}
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          variants={containerVariants}
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
@@ -89,18 +104,23 @@ export default function Products() {
           {products.map((product, index) => (
             <motion.div
               key={product.name}
-              initial={{ opacity: 0, y: 30 }}
-              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
+              custom={index}
+              variants={itemVariants}
+              initial="hidden"
+              animate={isInView ? "visible" : "hidden"}
               whileHover={{ scale: 1.05 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="p-8 rounded-2xl border border-gray-200 hover:border-black transition-all bg-white shadow-sm hover:shadow-2xl"
             >
               <div className="mb-6">
                 <div className="relative w-full aspect-[4/3] rounded-2xl bg-gradient-to-br from-gray-100 via-gray-50 to-gray-200 flex items-center justify-center overflow-hidden">
-                  <img
+                  <Image
                     src={product.image.src}
                     alt={product.image.alt}
+                    width={300}
+                    height={225}
                     className="max-h-full max-w-full object-contain drop-shadow-lg"
+                    loading="lazy"
                   />
                 </div>
               </div>

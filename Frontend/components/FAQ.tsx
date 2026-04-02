@@ -1,8 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useInView } from "framer-motion";
 import { useRef, useState } from "react";
+import { motion, useInView, AnimatePresence } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 
 const faqs = [
@@ -32,6 +31,20 @@ const faqs = [
   },
 ];
 
+const containerVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0 },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: { delay: i * 0.1, duration: 0.6 },
+  }),
+};
+
 export default function FAQ() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
@@ -42,8 +55,9 @@ export default function FAQ() {
       <div className="max-w-4xl mx-auto">
         <motion.div
           ref={ref}
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          variants={containerVariants}
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
           transition={{ duration: 0.8 }}
           className="text-center mb-16"
         >
@@ -56,9 +70,10 @@ export default function FAQ() {
           {faqs.map((faq, index) => (
             <motion.div
               key={index}
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-              transition={{ duration: 0.6, delay: index * 0.1 }}
+              custom={index}
+              variants={itemVariants}
+              initial="hidden"
+              animate={isInView ? "visible" : "hidden"}
               className="border border-gray-200 rounded-lg overflow-hidden"
             >
               <button
@@ -69,22 +84,24 @@ export default function FAQ() {
                   {faq.question}
                 </span>
                 <ChevronDown
-                  className={`w-5 h-5 text-gray-600 flex-shrink-0 transition-transform ${
+                  className={`w-5 h-5 text-gray-600 flex-shrink-0 transition-transform duration-200 ${
                     openIndex === index ? "rotate-180" : ""
                   }`}
                 />
               </button>
-              {openIndex === index && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="px-6 pb-4 text-gray-600 leading-relaxed"
-                >
-                  {faq.answer}
-                </motion.div>
-              )}
+              <AnimatePresence>
+                {openIndex === index && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="px-6 pb-4 text-gray-600 leading-relaxed"
+                  >
+                    {faq.answer}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           ))}
         </div>

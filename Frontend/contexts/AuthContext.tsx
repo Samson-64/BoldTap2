@@ -6,6 +6,7 @@ import React, {
   useState,
   useEffect,
   useCallback,
+  useRef,
 } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -14,6 +15,7 @@ import {
   register as registerUser,
   logout as logoutUser,
   getCurrentUser,
+  getAuthToken,
 } from "@/contexts/lib/auth";
 import {
   ServiceId,
@@ -56,12 +58,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     null,
   );
   const router = useRouter();
+  const isHydrated = useRef(false);
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    setUser(currentUser);
-    setSelectedServiceState(getSelectedService());
-    setLoading(false);
+    let active = true;
+
+    const hydrateAuthState = async () => {
+      if (isHydrated.current) return;
+      isHydrated.current = true;
+
+      const storedService = getSelectedService();
+      if (storedService) {
+        setSelectedServiceState(storedService);
+      }
+
+      const token = getAuthToken();
+      if (!token) {
+        if (!active) return;
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      const currentUser = getCurrentUser();
+      if (currentUser && active) {
+        setUser(currentUser);
+        setLoading(false);
+        return;
+      }
+
+      // Only fetch from server if no local user
+      try {
+        const freshUser = await getCurrentUserFromServer();
+        if (!active) return;
+
+        if (!freshUser) {
+          await logoutUser();
+          clearStoredService();
+          setSelectedServiceState(null);
+          setUser(null);
+        } else {
+          setUser(freshUser);
+        }
+      } catch {
+        // Silent fail - user will be logged out
+      }
+
+      setLoading(false);
+    };
+
+    void hydrateAuthState();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const setSelectedService = useCallback((id: ServiceId) => {
@@ -100,7 +150,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         return { success: false, error: response.error || "Login failed" };
       }
-    } catch (error) {
+    } catch {
       return { success: false, error: "An error occurred during login" };
     }
   };
@@ -125,18 +175,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           error: response.error || "Registration failed",
         };
       }
-    } catch (error) {
+    } catch {
       return { success: false, error: "An error occurred during registration" };
     }
   };
 
-  const logout = () => {
-    logoutUser();
+  const logout = useCallback(() => {
+    void logoutUser();
     clearStoredService();
     setUser(null);
     setSelectedServiceState(null);
     router.push("/login");
-  };
+  }, [router]);
 
   return (
     <AuthContext.Provider
@@ -162,4 +212,10 @@ export function useAuth() {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
+}
+
+// Separate function to avoid hoisting issues
+async function getCurrentUserFromServer(): Promise<import("@/contexts/lib/auth").User | null> {
+  const { getCurrentUserFromServer: fetchUser } = await import("@/contexts/lib/auth");
+  return fetchUser();
 }

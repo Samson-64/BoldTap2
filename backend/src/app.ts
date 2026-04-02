@@ -4,7 +4,8 @@
 import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
-import { FRONTEND_URL, NODE_ENV } from "./config/env";
+import rateLimit from "express-rate-limit";
+import { FRONTEND_URL, NODE_ENV, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_AUTH_MAX_REQUESTS } from "./config/env";
 import { sendError } from "./utils/errors";
 
 // Routes
@@ -14,10 +15,29 @@ import nfcBusinessRoutes from "./routes/nfcBusinessRoutes";
 
 const app = express();
 
-// ============ MIDDLEWARE ============
+// ============ SECURITY MIDDLEWARE ============
 
-// Security middleware
-app.use(helmet());
+// Security headers with helmet
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "https:"],
+      scriptSrc: ["'self'"],
+      connectSrc: ["'self'", FRONTEND_URL],
+    },
+  },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  noSniff: true,
+  xssFilter: true,
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+}));
 
 // CORS configuration
 const corsOptions = {
@@ -26,22 +46,68 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200,
   allowedHeaders: ["Content-Type", "Authorization"],
+  exposedHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
 };
 app.use(cors(corsOptions));
 
-// Body parsing middleware
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ limit: "10mb", extended: true }));
+// ============ RATE LIMITING ============
 
-// Request logging middleware (development)
+// General rate limiter
+const generalLimiter = rateLimit({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  max: RATE_LIMIT_MAX_REQUESTS,
+  message: {
+    success: false,
+    error: "Too many requests",
+    message: "Rate limit exceeded. Please try again later.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(generalLimiter);
+
+// Stricter rate limiter for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  max: RATE_LIMIT_AUTH_MAX_REQUESTS,
+  message: {
+    success: false,
+    error: "Too many requests",
+    message: "Too many authentication attempts. Please try again later.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: false, // Count failed attempts too
+});
+
+// ============ BODY PARSING ============
+
+// Body parsing middleware with size limits
+app.use(express.json({
+  limit: "10mb",
+  strict: true, // Only accept arrays and objects
+}));
+app.use(express.urlencoded({
+  limit: "10mb",
+  extended: true,
+  parameterLimit: 50, // Limit number of parameters
+}));
+
+// ============ REQUEST LOGGING (DEV ONLY) ============
+
 if (NODE_ENV === "development") {
-  app.use((_req: Request, _res: Response, next: NextFunction) => {
-    console.log(`[${new Date().toISOString()}] ${_req.method} ${_req.path}`);
+  app.use((req: Request, _res: Response, next: NextFunction) => {
+    const start = Date.now();
+    _res.on("finish", () => {
+      const duration = Date.now() - start;
+      console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} ${_res.statusCode} - ${duration}ms`);
+    });
     next();
   });
 }
 
 // ============ HEALTH CHECK ============
+
 app.get("/health", (_req: Request, res: Response) => {
   res.json({
     status: "ok",
@@ -51,11 +117,14 @@ app.get("/health", (_req: Request, res: Response) => {
 });
 
 // ============ API ROUTES ============
-app.use("/auth", authRoutes);
+
+// Apply auth limiter to authentication routes
+app.use("/auth", authLimiter, authRoutes);
 app.use("/api/loyalty", loyaltyCardRoutes);
 app.use("/api/nfc", nfcBusinessRoutes);
 
-// Version endpoint
+// ============ VERSION & INFO ENDPOINTS ============
+
 app.get("/version", (_req: Request, res: Response) => {
   res.json({
     version: "1.0.0",
@@ -109,6 +178,7 @@ app.get("/api", (_req: Request, res: Response) => {
 });
 
 // ============ 404 HANDLER ============
+
 app.use((_req: Request, res: Response) => {
   res.status(404).json({
     success: false,
@@ -118,6 +188,7 @@ app.use((_req: Request, res: Response) => {
 });
 
 // ============ ERROR HANDLING MIDDLEWARE ============
+
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   console.error("Unhandled error:", err);
 

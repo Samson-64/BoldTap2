@@ -82,14 +82,42 @@ export async function getUserNfcProfile(
 
 // Update NFC profile
 export async function updateNfcProfile(
+  userId: string,
   profileId: string,
   data: Partial<CreateNfcBusinessInput>,
 ): Promise<{ success: boolean; data?: NfcBusinessProfile; error?: string }> {
   try {
-    const updated = await db.nfcBusinessProfiles.update(profileId, {
-      ...data,
-      userId: "",
-    });
+    const existing = await db.nfcBusinessProfiles.findById(profileId);
+    if (!existing) {
+      return { success: false, error: "Profile not found" };
+    }
+    if (existing.userId !== userId) {
+      return {
+        success: false,
+        error: "You do not have permission to update this profile",
+      };
+    }
+
+    if (data.slug && data.slug !== existing.slug) {
+      const conflict = await db.nfcBusinessProfiles.findBySlug(data.slug);
+      if (conflict) {
+        return { success: false, error: "Business slug already exists" };
+      }
+    }
+
+    const updates: Partial<CreateNfcBusinessInput> = {};
+    if (data.slug !== undefined) updates.slug = data.slug;
+    if (data.name !== undefined) updates.name = data.name;
+    if (data.title !== undefined) updates.title = data.title;
+    if (data.phone !== undefined) updates.phone = data.phone;
+    if (data.email !== undefined) updates.email = data.email;
+    if (data.website !== undefined) updates.website = data.website;
+    if (data.bio !== undefined) updates.bio = data.bio;
+
+    const updated =
+      Object.keys(updates).length > 0
+        ? await db.nfcBusinessProfiles.update(profileId, updates)
+        : existing;
 
     if (!updated) {
       return { success: false, error: "Profile not found" };
@@ -119,9 +147,21 @@ export async function getNfcProfileById(
 
 // Delete NFC profile
 export async function deleteNfcProfile(
+  userId: string,
   profileId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const profile = await db.nfcBusinessProfiles.findById(profileId);
+    if (!profile) {
+      return { success: false, error: "Profile not found" };
+    }
+    if (profile.userId !== userId) {
+      return {
+        success: false,
+        error: "You do not have permission to delete this profile",
+      };
+    }
+
     const deleted = await db.nfcBusinessProfiles.delete(profileId);
     if (!deleted) {
       return { success: false, error: "Profile not found" };

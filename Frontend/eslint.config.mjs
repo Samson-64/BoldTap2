@@ -4,6 +4,9 @@ import globals from "globals";
 import js from "@eslint/js";
 
 export default [
+  {
+    ignores: [".next/**", "node_modules/**"],
+  },
   js.configs.recommended,
   ...tsEslint.configs.recommended,
   {
@@ -18,6 +21,7 @@ export default [
     plugins: {
       "@next/next": nextPlugin,
     },
+    files: ["**/*.{js,mjs,cjs,ts,tsx}"],
     rules: {
       ...nextPlugin.configs.recommended.rules,
       "@typescript-eslint/no-unused-vars": "warn",

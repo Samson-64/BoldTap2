@@ -23,17 +23,17 @@ export declare function createLoyaltyCard(input: CreateLoyaltyCardInput): Promis
 }>;
 export declare function getLoyaltyCard(cardId: string): Promise<LoyaltyCard | null>;
 export declare function getUserLoyaltyCards(userId: string): Promise<LoyaltyCard[]>;
-export declare function addPointsToCard(cardId: string, points: number): Promise<{
+export declare function addPointsToCard(userId: string, cardId: string, points: number): Promise<{
     success: boolean;
     data?: LoyaltyCard;
     error?: string;
 }>;
-export declare function getBusinessLoyaltyCards(businessId: string): Promise<LoyaltyCard[]>;
-export declare function deleteLoyaltyCard(cardId: string): Promise<{
+export declare function getBusinessLoyaltyCards(userId: string, businessId: string): Promise<LoyaltyCard[]>;
+export declare function deleteLoyaltyCard(userId: string, cardId: string): Promise<{
     success: boolean;
     error?: string;
 }>;
-export declare function updateLoyaltyBusiness(businessId: string, data: Partial<CreateLoyaltyBusinessInput>): Promise<{
+export declare function updateLoyaltyBusiness(userId: string, businessId: string, data: Partial<CreateLoyaltyBusinessInput>): Promise<{
     success: boolean;
     data?: LoyaltyBusiness;
     error?: string;

@@ -1,8 +1,12 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useInView } from "framer-motion";
 import { useRef } from "react";
+import { motion, useInView } from "framer-motion";
+
+const containerVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0 },
+};
 
 export default function Impression() {
   const ref = useRef(null);
@@ -13,8 +17,9 @@ export default function Impression() {
       <div className="max-w-7xl mx-auto">
         <motion.div
           ref={ref}
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          variants={containerVariants}
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
           transition={{ duration: 0.8 }}
           className="text-center space-y-6 max-w-4xl mx-auto"
         >

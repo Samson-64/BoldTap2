@@ -23,7 +23,10 @@ async function authenticate(req, res, next) {
             throw new errors_1.AuthenticationError("Invalid authorization header format");
         }
         const token = parts[1];
-        const decoded = jsonwebtoken_1.default.verify(token, env_1.JWT_SECRET);
+        // Verify token with explicit algorithm
+        const decoded = jsonwebtoken_1.default.verify(token, env_1.JWT_SECRET, {
+            algorithms: [env_1.JWT_ALGORITHM],
+        });
         // Verify user exists in database
         const user = await db_1.db.users.findById(decoded.userId);
         if (!user) {
@@ -43,6 +46,14 @@ async function authenticate(req, res, next) {
                 success: false,
                 error: "Invalid token",
                 message: error.message,
+            });
+            return;
+        }
+        if (error instanceof jsonwebtoken_1.default.TokenExpiredError) {
+            res.status(401).json({
+                success: false,
+                error: "Token expired",
+                message: "Your session has expired. Please login again.",
             });
             return;
         }

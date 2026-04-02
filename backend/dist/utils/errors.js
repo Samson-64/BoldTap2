@@ -1,7 +1,7 @@
 "use strict";
 // Error handling and response utilities
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ConflictError = exports.NotFoundError = exports.AuthorizationError = exports.AuthenticationError = exports.ValidationError = exports.AppError = void 0;
+exports.BCRYPT_SALT_ROUNDS = exports.ConflictError = exports.NotFoundError = exports.AuthorizationError = exports.AuthenticationError = exports.ValidationError = exports.AppError = void 0;
 exports.sendSuccess = sendSuccess;
 exports.sendError = sendError;
 exports.sendCreated = sendCreated;
@@ -10,6 +10,7 @@ exports.sendPaginated = sendPaginated;
 exports.validateRequiredFields = validateRequiredFields;
 exports.validateEmail = validateEmail;
 exports.validatePassword = validatePassword;
+exports.sanitizeInput = sanitizeInput;
 class AppError extends Error {
     constructor(statusCode, message, code = "INTERNAL_ERROR") {
         super(message);
@@ -108,7 +109,16 @@ function sendPaginated(res, data, total, page, limit, statusCode = 200) {
 }
 // Request validation helper
 function validateRequiredFields(data, fields) {
-    const missing = fields.filter((field) => !data[field]);
+    const missing = fields.filter((field) => {
+        const value = data[field];
+        if (value === undefined || value === null) {
+            return true;
+        }
+        if (typeof value === "string" && value.trim() === "") {
+            return true;
+        }
+        return false;
+    });
     if (missing.length > 0) {
         return new ValidationError(`Missing required fields: ${missing.join(", ")}`);
     }
@@ -125,6 +135,12 @@ function validatePassword(password) {
             error: "Password must be at least 8 characters long",
         };
     }
+    if (password.length > 128) {
+        return {
+            valid: false,
+            error: "Password must not exceed 128 characters",
+        };
+    }
     if (!/[a-zA-Z]/.test(password)) {
         return {
             valid: false,
@@ -137,12 +153,18 @@ function validatePassword(password) {
             error: "Password must contain at least one uppercase letter",
         };
     }
-    if (!/[0-9]/.test(password)) {
+    if (!/[0-9!@#$%^&*(),.?":{}|<>]/.test(password)) {
         return {
             valid: false,
-            error: "Password must contain at least one digit",
+            error: "Password must contain at least one number or special character",
         };
     }
     return { valid: true };
 }
+// Input sanitization helper
+function sanitizeInput(input) {
+    return input.trim().replace(/[<>]/g, "");
+}
+// Bcrypt salt rounds for production (higher = more secure but slower)
+exports.BCRYPT_SALT_ROUNDS = process.env.NODE_ENV === "production" ? 12 : 10;
 //# sourceMappingURL=errors.js.map

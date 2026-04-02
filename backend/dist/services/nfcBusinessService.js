@@ -66,12 +66,42 @@ async function getUserNfcProfile(userId) {
     }
 }
 // Update NFC profile
-async function updateNfcProfile(profileId, data) {
+async function updateNfcProfile(userId, profileId, data) {
     try {
-        const updated = await db_1.db.nfcBusinessProfiles.update(profileId, {
-            ...data,
-            userId: "",
-        });
+        const existing = await db_1.db.nfcBusinessProfiles.findById(profileId);
+        if (!existing) {
+            return { success: false, error: "Profile not found" };
+        }
+        if (existing.userId !== userId) {
+            return {
+                success: false,
+                error: "You do not have permission to update this profile",
+            };
+        }
+        if (data.slug && data.slug !== existing.slug) {
+            const conflict = await db_1.db.nfcBusinessProfiles.findBySlug(data.slug);
+            if (conflict) {
+                return { success: false, error: "Business slug already exists" };
+            }
+        }
+        const updates = {};
+        if (data.slug !== undefined)
+            updates.slug = data.slug;
+        if (data.name !== undefined)
+            updates.name = data.name;
+        if (data.title !== undefined)
+            updates.title = data.title;
+        if (data.phone !== undefined)
+            updates.phone = data.phone;
+        if (data.email !== undefined)
+            updates.email = data.email;
+        if (data.website !== undefined)
+            updates.website = data.website;
+        if (data.bio !== undefined)
+            updates.bio = data.bio;
+        const updated = Object.keys(updates).length > 0
+            ? await db_1.db.nfcBusinessProfiles.update(profileId, updates)
+            : existing;
         if (!updated) {
             return { success: false, error: "Profile not found" };
         }
@@ -95,8 +125,18 @@ async function getNfcProfileById(profileId) {
     }
 }
 // Delete NFC profile
-async function deleteNfcProfile(profileId) {
+async function deleteNfcProfile(userId, profileId) {
     try {
+        const profile = await db_1.db.nfcBusinessProfiles.findById(profileId);
+        if (!profile) {
+            return { success: false, error: "Profile not found" };
+        }
+        if (profile.userId !== userId) {
+            return {
+                success: false,
+                error: "You do not have permission to delete this profile",
+            };
+        }
         const deleted = await db_1.db.nfcBusinessProfiles.delete(profileId);
         if (!deleted) {
             return { success: false, error: "Profile not found" };

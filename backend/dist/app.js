@@ -8,6 +8,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const helmet_1 = __importDefault(require("helmet"));
+const express_rate_limit_1 = __importDefault(require("express-rate-limit"));
 const env_1 = require("./config/env");
 const errors_1 = require("./utils/errors");
 // Routes
@@ -15,9 +16,28 @@ const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const loyaltyCardRoutes_1 = __importDefault(require("./routes/loyaltyCardRoutes"));
 const nfcBusinessRoutes_1 = __importDefault(require("./routes/nfcBusinessRoutes"));
 const app = (0, express_1.default)();
-// ============ MIDDLEWARE ============
-// Security middleware
-app.use((0, helmet_1.default)());
+// ============ SECURITY MIDDLEWARE ============
+// Security headers with helmet
+app.use((0, helmet_1.default)({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "https:"],
+            scriptSrc: ["'self'"],
+            connectSrc: ["'self'", env_1.FRONTEND_URL],
+        },
+    },
+    hsts: {
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+    },
+    noSniff: true,
+    xssFilter: true,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+}));
 // CORS configuration
 const corsOptions = {
     origin: env_1.FRONTEND_URL,
@@ -25,15 +45,55 @@ const corsOptions = {
     credentials: true,
     optionsSuccessStatus: 200,
     allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
 };
 app.use((0, cors_1.default)(corsOptions));
-// Body parsing middleware
-app.use(express_1.default.json({ limit: "10mb" }));
-app.use(express_1.default.urlencoded({ limit: "10mb", extended: true }));
-// Request logging middleware (development)
+// ============ RATE LIMITING ============
+// General rate limiter
+const generalLimiter = (0, express_rate_limit_1.default)({
+    windowMs: env_1.RATE_LIMIT_WINDOW_MS,
+    max: env_1.RATE_LIMIT_MAX_REQUESTS,
+    message: {
+        success: false,
+        error: "Too many requests",
+        message: "Rate limit exceeded. Please try again later.",
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+app.use(generalLimiter);
+// Stricter rate limiter for auth endpoints
+const authLimiter = (0, express_rate_limit_1.default)({
+    windowMs: env_1.RATE_LIMIT_WINDOW_MS,
+    max: env_1.RATE_LIMIT_AUTH_MAX_REQUESTS,
+    message: {
+        success: false,
+        error: "Too many requests",
+        message: "Too many authentication attempts. Please try again later.",
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: false, // Count failed attempts too
+});
+// ============ BODY PARSING ============
+// Body parsing middleware with size limits
+app.use(express_1.default.json({
+    limit: "10mb",
+    strict: true, // Only accept arrays and objects
+}));
+app.use(express_1.default.urlencoded({
+    limit: "10mb",
+    extended: true,
+    parameterLimit: 50, // Limit number of parameters
+}));
+// ============ REQUEST LOGGING (DEV ONLY) ============
 if (env_1.NODE_ENV === "development") {
-    app.use((_req, _res, next) => {
-        console.log(`[${new Date().toISOString()}] ${_req.method} ${_req.path}`);
+    app.use((req, _res, next) => {
+        const start = Date.now();
+        _res.on("finish", () => {
+            const duration = Date.now() - start;
+            console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} ${_res.statusCode} - ${duration}ms`);
+        });
         next();
     });
 }
@@ -46,10 +106,11 @@ app.get("/health", (_req, res) => {
     });
 });
 // ============ API ROUTES ============
-app.use("/auth", authRoutes_1.default);
+// Apply auth limiter to authentication routes
+app.use("/auth", authLimiter, authRoutes_1.default);
 app.use("/api/loyalty", loyaltyCardRoutes_1.default);
 app.use("/api/nfc", nfcBusinessRoutes_1.default);
-// Version endpoint
+// ============ VERSION & INFO ENDPOINTS ============
 app.get("/version", (_req, res) => {
     res.json({
         version: "1.0.0",

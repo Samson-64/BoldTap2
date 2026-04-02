@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -20,12 +20,20 @@ export default function Navigation() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // Use RAF for efficient scroll handling
+    let ticking = false;
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setIsScrolled(window.scrollY > 20);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
-    handleScroll(); // Initial check
-    window.addEventListener("scroll", handleScroll);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -35,6 +43,15 @@ export default function Navigation() {
     { name: "Features", href: "#features" },
     { name: "FAQ", href: "#faq" },
   ];
+
+  const handleClearService = useCallback(() => {
+    clearSelectedService();
+    router.push("/select-service");
+  }, [clearSelectedService, router]);
+
+  const handleLogout = useCallback(() => {
+    logout();
+  }, [logout]);
 
   return (
     <motion.nav
@@ -54,6 +71,7 @@ export default function Navigation() {
                 src="/images/logo.png"
                 alt="BoldTap Logo"
                 className="h-full w-full object-cover"
+                loading="eager"
               />
             </div>
           </Link>
@@ -87,10 +105,7 @@ export default function Navigation() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => {
-                    clearSelectedService();
-                    router.push("/select-service");
-                  }}
+                  onClick={handleClearService}
                   className={`flex items-center space-x-2 transition-colors font-medium ${
                     isScrolled
                       ? "text-gray-700 hover:text-black"
@@ -101,7 +116,7 @@ export default function Navigation() {
                   <span>Switch service</span>
                 </button>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className={`flex items-center space-x-2 transition-colors font-medium ${
                     isScrolled
                       ? "text-gray-700 hover:text-black"
@@ -188,8 +203,7 @@ export default function Navigation() {
                 <button
                   type="button"
                   onClick={() => {
-                    clearSelectedService();
-                    router.push("/select-service");
+                    handleClearService();
                     setIsMobileMenuOpen(false);
                   }}
                   className={`w-full flex items-center justify-center space-x-2 transition-colors font-medium ${
@@ -203,7 +217,7 @@ export default function Navigation() {
                 </button>
                 <button
                   onClick={() => {
-                    logout();
+                    handleLogout();
                     setIsMobileMenuOpen(false);
                   }}
                   className={`w-full flex items-center justify-center space-x-2 transition-colors font-medium ${

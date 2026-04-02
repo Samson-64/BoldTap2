@@ -109,17 +109,24 @@ async function getLoyaltyBusinessBySlug(req, res) {
 // Create loyalty card (init card)
 async function createLoyaltyCard(req, res) {
     try {
+        if (!req.user || !req.user.userId) {
+            return (0, errors_1.sendError)(res, "User not authenticated", 401);
+        }
         const { businessId, userId } = req.body;
-        const validationError = (0, errors_1.validateRequiredFields)({ businessId, userId }, [
+        const targetUserId = userId || req.user.userId;
+        const validationError = (0, errors_1.validateRequiredFields)({ businessId, userId: targetUserId }, [
             "businessId",
             "userId",
         ]);
         if (validationError) {
             return (0, errors_1.sendError)(res, validationError);
         }
+        if (targetUserId !== req.user.userId) {
+            return (0, errors_1.sendError)(res, "Authenticated users can only create cards for themselves", 403);
+        }
         const result = await loyaltyService.createLoyaltyCard({
             businessId,
-            userId,
+            userId: targetUserId,
         });
         if (!result.success) {
             return (0, errors_1.sendError)(res, result.error || "Failed to create card", 400);
@@ -163,12 +170,15 @@ async function getUserLoyaltyCards(req, res) {
 // Add points to card
 async function addPointsToCard(req, res) {
     try {
+        if (!req.user || !req.user.userId) {
+            return (0, errors_1.sendError)(res, "User not authenticated", 401);
+        }
         const { cardId } = req.params;
         const { points } = req.body;
-        if (!cardId || typeof points !== "number") {
+        if (!cardId || !Number.isFinite(points)) {
             return (0, errors_1.sendError)(res, "Card ID and points are required", 400);
         }
-        const result = await loyaltyService.addPointsToCard(cardId, points);
+        const result = await loyaltyService.addPointsToCard(req.user.userId, cardId, points);
         if (!result.success) {
             return (0, errors_1.sendError)(res, result.error || "Failed to add points", 400);
         }
@@ -181,11 +191,14 @@ async function addPointsToCard(req, res) {
 // Get business loyalty cards (admin)
 async function getBusinessLoyaltyCards(req, res) {
     try {
+        if (!req.user || !req.user.userId) {
+            return (0, errors_1.sendError)(res, "User not authenticated", 401);
+        }
         const { businessId } = req.params;
         if (!businessId) {
             return (0, errors_1.sendError)(res, "Business ID is required", 400);
         }
-        const cards = await loyaltyService.getBusinessLoyaltyCards(businessId);
+        const cards = await loyaltyService.getBusinessLoyaltyCards(req.user.userId, businessId);
         return (0, errors_1.sendSuccess)(res, { cards });
     }
     catch (error) {
@@ -195,11 +208,14 @@ async function getBusinessLoyaltyCards(req, res) {
 // Delete loyalty card
 async function deleteLoyaltyCard(req, res) {
     try {
+        if (!req.user || !req.user.userId) {
+            return (0, errors_1.sendError)(res, "User not authenticated", 401);
+        }
         const { cardId } = req.params;
         if (!cardId) {
             return (0, errors_1.sendError)(res, "Card ID is required", 400);
         }
-        const result = await loyaltyService.deleteLoyaltyCard(cardId);
+        const result = await loyaltyService.deleteLoyaltyCard(req.user.userId, cardId);
         if (!result.success) {
             return (0, errors_1.sendError)(res, result.error || "Failed to delete card", 400);
         }
@@ -212,12 +228,15 @@ async function deleteLoyaltyCard(req, res) {
 // Update loyalty business
 async function updateLoyaltyBusiness(req, res) {
     try {
+        if (!req.user || !req.user.userId) {
+            return (0, errors_1.sendError)(res, "User not authenticated", 401);
+        }
         const { businessId } = req.params;
         const { name, description, maxPoints } = req.body;
         if (!businessId) {
             return (0, errors_1.sendError)(res, "Business ID is required", 400);
         }
-        const result = await loyaltyService.updateLoyaltyBusiness(businessId, {
+        const result = await loyaltyService.updateLoyaltyBusiness(req.user.userId, businessId, {
             name,
             description,
             maxPoints,

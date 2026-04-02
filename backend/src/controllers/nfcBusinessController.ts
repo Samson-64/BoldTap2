@@ -104,6 +104,10 @@ export async function updateNfcProfile(
   res: Response,
 ) {
   try {
+    if (!req.user || !req.user.userId) {
+      return sendError(res, "User not authenticated", 401);
+    }
+
     const { profileId } = req.params as { profileId: string };
     const { name, title, phone, email, website, bio } = req.body;
 
@@ -111,7 +115,7 @@ export async function updateNfcProfile(
       return sendError(res, "Profile ID is required", 400);
     }
 
-    const result = await nfcService.updateNfcProfile(profileId, {
+    const result = await nfcService.updateNfcProfile(req.user.userId, profileId, {
       name,
       title,
       phone,
@@ -136,13 +140,17 @@ export async function deleteNfcProfile(
   res: Response,
 ) {
   try {
+    if (!req.user || !req.user.userId) {
+      return sendError(res, "User not authenticated", 401);
+    }
+
     const { profileId } = req.params as { profileId: string };
 
     if (!profileId) {
       return sendError(res, "Profile ID is required", 400);
     }
 
-    const result = await nfcService.deleteNfcProfile(profileId);
+    const result = await nfcService.deleteNfcProfile(req.user.userId, profileId);
 
     if (!result.success) {
       return sendError(res, result.error || "Failed to delete profile", 400);

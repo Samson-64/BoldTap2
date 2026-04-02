@@ -1,8 +1,12 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { useInView } from "framer-motion";
 import { useRef } from "react";
+import { motion, useInView } from "framer-motion";
+
+const containerVariants = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0 },
+};
 
 export default function Connecting() {
   const ref = useRef(null);
@@ -13,8 +17,9 @@ export default function Connecting() {
       <div className="max-w-7xl mx-auto">
         <motion.div
           ref={ref}
-          initial={{ opacity: 0, y: 30 }}
-          animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+          variants={containerVariants}
+          initial="hidden"
+          animate={isInView ? "visible" : "hidden"}
           transition={{ duration: 0.8 }}
           className="text-center space-y-8"
         >
@@ -24,7 +29,7 @@ export default function Connecting() {
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Experience the versatility of digital business cards that work seamlessly across all devices and platforms, ensuring you never miss an opportunity to connect.
           </p>
-          
+
           {/* Product Image Placeholder */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}

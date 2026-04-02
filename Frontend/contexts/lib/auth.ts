@@ -1,10 +1,20 @@
 // Authentication utility functions
+import {
+  apiRegister as apiRegisterUser,
+  apiLogin as apiLoginUser,
+  apiLogout as apiLogoutUser,
+  apiGetCurrentUser,
+  setAuthToken,
+  clearAuthToken,
+  getAuthToken as getStoredToken,
+} from "@/contexts/api";
 
 export interface User {
   id: string;
   email: string;
   name: string;
   phone?: string;
+  userId?: string;
 }
 
 export interface AuthResponse {
@@ -14,11 +24,46 @@ export interface AuthResponse {
   error?: string;
 }
 
-// Simulate API delay
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const CURRENT_USER_KEY = "currentUser";
+const TOKEN_LIFETIME_MS = 24 * 60 * 60 * 1000; // 24 hours
 
-// Validate password strength
-export function validatePassword(password: string): { valid: boolean; error?: string } {
+function getPreferredStorage(remember: boolean): Storage | null {
+  if (typeof window === "undefined") return null;
+  return remember ? localStorage : sessionStorage;
+}
+
+function getActiveAuthStorage(): Storage | null {
+  if (typeof window === "undefined") return null;
+  if (localStorage.getItem("authToken")) return localStorage;
+  if (sessionStorage.getItem("authToken")) return sessionStorage;
+  return null;
+}
+
+function persistCurrentUser(user: User, remember: boolean): void {
+  const storage = getPreferredStorage(remember);
+  if (!storage) return;
+
+  // Store with timestamp for security validation
+  const userData = {
+    ...user,
+    _timestamp: Date.now(),
+  };
+  localStorage.removeItem(CURRENT_USER_KEY);
+  sessionStorage.removeItem(CURRENT_USER_KEY);
+  storage.setItem(CURRENT_USER_KEY, JSON.stringify(userData));
+}
+
+function clearStoredCurrentUser(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(CURRENT_USER_KEY);
+  sessionStorage.removeItem(CURRENT_USER_KEY);
+}
+
+// Validate password strength (OWASP recommendations)
+export function validatePassword(password: string): {
+  valid: boolean;
+  error?: string;
+} {
   if (password.length < 8) {
     return {
       valid: false,
@@ -26,7 +71,14 @@ export function validatePassword(password: string): { valid: boolean; error?: st
     };
   }
 
-  // Check for at least one letter (character)
+  if (password.length > 128) {
+    return {
+      valid: false,
+      error: "Password must not exceed 128 characters",
+    };
+  }
+
+  // Check for at least one letter
   if (!/[a-zA-Z]/.test(password)) {
     return {
       valid: false,
@@ -42,7 +94,20 @@ export function validatePassword(password: string): { valid: boolean; error?: st
     };
   }
 
+  // Check for at least one number or special character
+  if (!/[0-9!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    return {
+      valid: false,
+      error: "Password must contain at least one number or special character",
+    };
+  }
+
   return { valid: true };
+}
+
+// Sanitize email input
+function sanitizeEmail(email: string): string {
+  return email.trim().toLowerCase();
 }
 
 // Register a new user
@@ -50,10 +115,8 @@ export async function register(
   name: string,
   email: string,
   phone: string,
-  password: string
+  password: string,
 ): Promise<AuthResponse> {
-  await delay(1000); // Simulate API call
-
   // Validate password strength
   const passwordValidation = validatePassword(password);
   if (!passwordValidation.valid) {
@@ -63,119 +126,173 @@ export async function register(
     };
   }
 
-  // Check if user already exists (in a real app, this would be a backend check)
-  const existingUsers = JSON.parse(
-    localStorage.getItem("users") || "[]"
-  ) as Array<{ email: string }>;
+  // Sanitize email
+  const sanitizedEmail = sanitizeEmail(email);
 
-  if (existingUsers.some((user) => user.email === email)) {
+  // Call backend API
+  const response = await apiRegisterUser(name, sanitizedEmail, phone, password);
+
+  if (!response.success) {
     return {
       success: false,
-      error: "An account with this email already exists",
+      error: response.error,
     };
   }
 
-  // Create new user (extended fields for admin registry — see userRegistry)
-  const newUser: User & {
-    password: string;
-    paymentStatus: "pending";
-    acquiredService: null;
-  } = {
-    id: Date.now().toString(),
-    name,
-    email,
-    phone,
-    password, // In production, this would be hashed
-    paymentStatus: "pending",
-    acquiredService: null,
-  };
+  const { user, token } = response.data || {};
+  if (!user || !token) {
+    return {
+      success: false,
+      error: "Invalid response from server",
+    };
+  }
 
-  // Save user to localStorage (in production, this would be a backend API call)
-  const users = [...existingUsers, newUser];
-  localStorage.setItem("users", JSON.stringify(users));
+  // Save token (remember by default for registration flow)
+  setAuthToken(token, true);
 
-  // Generate token (in production, this would come from backend)
-  const token = btoa(JSON.stringify({ userId: newUser.id, email: newUser.email }));
-
-  // Save token
-  localStorage.setItem("authToken", token);
-  localStorage.setItem("currentUser", JSON.stringify({ id: newUser.id, email: newUser.email, name: newUser.name, phone: newUser.phone }));
+  // Save user to localStorage for faster local access
+  if (typeof window !== "undefined") {
+    persistCurrentUser(
+      {
+        id: user.id || user.userId,
+        email: user.email,
+        name: user.name,
+        phone: user.phone,
+      },
+      true,
+    );
+  }
 
   return {
     success: true,
-    user: { id: newUser.id, email: newUser.email, name: newUser.name, phone: newUser.phone },
+    user: {
+      id: user.id || user.userId,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+    },
     token,
   };
 }
 
-// Login user
+// Login user with rate limiting awareness
 export async function login(
   email: string,
   password: string,
-  rememberMe: boolean = false
+  rememberMe: boolean = false,
 ): Promise<AuthResponse> {
-  await delay(1000); // Simulate API call
+  // Sanitize email
+  const sanitizedEmail = sanitizeEmail(email);
 
-  // Get users from localStorage (in production, this would be a backend API call)(Data would be stored in a database and password would be hashed)
-  const users = JSON.parse(
-    localStorage.getItem("users") || "[]"
-  ) as Array<User & { password: string }>;
+  // Call backend API
+  const response = await apiLoginUser(sanitizedEmail, password);
 
-  // Find user
-  const user = users.find((u) => u.email === email);
-
-  if (!user) {
+  if (!response.success) {
     return {
       success: false,
-      error: "Invalid email or password",
+      error: response.error,
     };
   }
 
-  // Check password (in production, this would be hashed comparison)
-  if (user.password !== password) {
+  const { user, token } = response.data || {};
+  if (!user || !token) {
     return {
       success: false,
-      error: "Invalid email or password",
+      error: "Invalid response from server",
     };
   }
-
-  // Generate token
-  const token = btoa(JSON.stringify({ userId: user.id, email: user.email }));
 
   // Save token
-  if (rememberMe) {
-    localStorage.setItem("authToken", token);
-    localStorage.setItem("currentUser", JSON.stringify({ id: user.id, email: user.email, name: user.name, phone: user.phone }));
-  } else {
-    sessionStorage.setItem("authToken", token);
-    sessionStorage.setItem("currentUser", JSON.stringify({ id: user.id, email: user.email, name: user.name, phone: user.phone }));
+  setAuthToken(token, rememberMe);
+
+  // Save user to localStorage for faster local access
+  if (typeof window !== "undefined") {
+    persistCurrentUser(
+      {
+        id: user.id || user.userId,
+        email: user.email,
+        name: user.name,
+        phone: user.phone,
+      },
+      rememberMe,
+    );
   }
 
   return {
     success: true,
-    user: { id: user.id, email: user.email, name: user.name, phone: user.phone },
+    user: {
+      id: user.id || user.userId,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+    },
     token,
   };
 }
 
 // Logout user
-export function logout(): void {
-  localStorage.removeItem("authToken");
-  localStorage.removeItem("currentUser");
-  sessionStorage.removeItem("authToken");
-  sessionStorage.removeItem("currentUser");
+export async function logout(): Promise<void> {
+  // Call backend API to logout
+  try {
+    await apiLogoutUser();
+  } catch {
+    // Continue with local cleanup even if backend fails
+  }
+
+  clearAuthToken();
+  clearStoredCurrentUser();
 }
 
-// Get current user
+// Get current user from server
+export async function getCurrentUserFromServer(): Promise<User | null> {
+  const response = await apiGetCurrentUser();
+
+  if (!response.success || !response.data?.user) {
+    return null;
+  }
+
+  const user = response.data.user;
+  return {
+    id: user.id || user.userId,
+    email: user.email,
+    name: user.name,
+    phone: user.phone,
+  };
+}
+
+// Get current user from local storage with validation
 export function getCurrentUser(): User | null {
   if (typeof window === "undefined") return null;
+  if (!getStoredToken()) {
+    clearStoredCurrentUser();
+    return null;
+  }
 
-  const userStr = localStorage.getItem("currentUser") || sessionStorage.getItem("currentUser");
+  const storage = getActiveAuthStorage();
+  const userStr =
+    storage?.getItem(CURRENT_USER_KEY) ||
+    localStorage.getItem(CURRENT_USER_KEY) ||
+    sessionStorage.getItem(CURRENT_USER_KEY);
   if (!userStr) return null;
 
   try {
-    return JSON.parse(userStr) as User;
+    const userData = JSON.parse(userStr) as User & { _timestamp?: number };
+
+    // Validate user data age (optional: force refresh after 24h)
+    if (userData._timestamp) {
+      const age = Date.now() - userData._timestamp;
+      if (age > TOKEN_LIFETIME_MS) {
+        // Data is stale, clear it
+        clearStoredCurrentUser();
+        return null;
+      }
+    }
+
+    // Return clean user object without internal fields
+    const { _timestamp, ...user } = userData;
+    return user as User;
   } catch {
+    clearStoredCurrentUser();
     return null;
   }
 }
@@ -184,7 +301,7 @@ export function getCurrentUser(): User | null {
 export function isAuthenticated(): boolean {
   if (typeof window === "undefined") return false;
 
-  const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+  const token = getStoredToken();
   return !!token;
 }
 
@@ -192,5 +309,5 @@ export function isAuthenticated(): boolean {
 export function getAuthToken(): string | null {
   if (typeof window === "undefined") return null;
 
-  return localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+  return getStoredToken();
 }

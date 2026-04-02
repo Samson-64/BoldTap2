@@ -205,7 +205,6 @@ export default function NfcBusinessCardView({
       <div className="relative">
         <div className="h-40 w-full overflow-hidden bg-gradient-to-br from-slate-400 via-slate-500 to-slate-700 sm:h-44">
           {bannerUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={bannerUrl}
               alt=""
@@ -216,7 +215,6 @@ export default function NfcBusinessCardView({
         <div className="relative flex flex-col items-center px-5 pb-2 pt-0">
           <div className="-mt-14 z-10 h-28 w-28 shrink-0 overflow-hidden rounded-full border-4 border-white bg-gray-200 shadow-lg">
             {profileImg ? (
-              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={profileImg}
                 alt=""
