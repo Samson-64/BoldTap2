@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Loyalty Card Wallet",
+    "slug": "loyalty-card-wallet",
+    "version": "1.0.0",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTabletMode": true,
+      "bundleIdentifier": "com.boldtap.loyaltycardwallet"
+    },
+    "android": {
+      "package": "com.boldtap.loyaltycardwallet"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-barcode-scanner",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera"
+        }
+      ]
+    ],
+    "scheme": "loyalty-card-wallet",
+    "owner": "boldtap"
+  }
+}

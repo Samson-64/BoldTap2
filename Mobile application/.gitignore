@@ -1,0 +1,40 @@
+# Expo
+.expo/
+.expo-shared/
+dist/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+*.tgz
+
+# macOS
+.DS_Store
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Temporary files
+*.swp
+*.swo
+*~
+.vscode/launch.json
+.vscode/settings.json
+
+# Android
+android/app/debug
+android/app/release
+*.apk
+*.aab
+
+# iOS
+ios/Pods
+ios/Podfile.lock
+build/
+
+# EAS
+.eas

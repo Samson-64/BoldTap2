@@ -98,17 +98,20 @@ export default function RegisterPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="w-full max-w-md"
+          className="w-full max-w-3xl"
         >
-          <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-200 p-8">
+          <div className="bg-white/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-gray-200 p-6 sm:p-8">
             <h1 className="text-3xl font-bold text-black mb-2">
               Create Account
             </h1>
-            <p className="text-gray-600 mb-8">
+            <p className="text-gray-600 mb-6">
               Get started with your digital business card
             </p>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            <form
+              onSubmit={handleSubmit}
+              className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5"
+            >
               <div>
                 <label
                   htmlFor="fullName"
@@ -189,7 +192,7 @@ export default function RegisterPage() {
                 </p>
               </div>
 
-              <div>
+              <div className="md:col-span-2">
                 <label
                   htmlFor="confirmPassword"
                   className="block text-sm font-medium text-gray-700 mb-2"
@@ -208,7 +211,7 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div className="flex items-start">
+              <div className="flex items-start md:col-span-2">
                 <input
                   id="acceptTerms"
                   name="acceptTerms"
@@ -233,7 +236,7 @@ export default function RegisterPage() {
               </div>
 
               {error && (
-                <div className="flex items-center space-x-2 text-red-600 bg-red-50 p-3 rounded-lg">
+                <div className="flex items-center space-x-2 text-red-600 bg-red-50 p-3 rounded-lg md:col-span-2">
                   <AlertCircle className="w-5 h-5" />
                   <span className="text-sm">{error}</span>
                 </div>
@@ -242,7 +245,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                className="w-full bg-black text-white py-3 rounded-lg font-semibold hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 md:col-span-2"
               >
                 {loading ? (
                   <>
