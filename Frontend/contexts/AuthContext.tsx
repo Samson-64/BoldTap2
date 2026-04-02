@@ -16,6 +16,7 @@ import {
   logout as logoutUser,
   getCurrentUser,
   getAuthToken,
+  getCurrentUserFromServer as fetchCurrentUserFromServer,
 } from "@/contexts/lib/auth";
 import {
   ServiceId,
@@ -89,7 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Only fetch from server if no local user
       try {
-        const freshUser = await getCurrentUserFromServer();
+        const freshUser = await fetchCurrentUserFromServer();
         if (!active) return;
 
         if (!freshUser) {
@@ -145,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearStoredService();
         setSelectedServiceState(null);
         setUser(response.user);
-        router.push("/select-service");
+        router.replace("/select-service");
         return { success: true };
       } else {
         return { success: false, error: response.error || "Login failed" };
@@ -167,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearStoredService();
         setSelectedServiceState(null);
         setUser(response.user);
-        router.push("/select-service");
+        router.replace("/select-service");
         return { success: true };
       } else {
         return {
@@ -185,7 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     clearStoredService();
     setUser(null);
     setSelectedServiceState(null);
-    router.push("/login");
+    router.replace("/login");
   }, [router]);
 
   return (
@@ -212,10 +213,4 @@ export function useAuth() {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
-}
-
-// Separate function to avoid hoisting issues
-async function getCurrentUserFromServer(): Promise<import("@/contexts/lib/auth").User | null> {
-  const { getCurrentUserFromServer: fetchUser } = await import("@/contexts/lib/auth");
-  return fetchUser();
 }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Menu, X, LogOut, LayoutGrid } from "lucide-react";
@@ -67,11 +68,13 @@ export default function Navigation() {
           {/* Logo */}
           <Link href="/" className="flex items-center">
             <div className="relative h-16 md:h-20 w-16 md:w-20 rounded-full overflow-hidden bg-transparent">
-              <img
+              <Image
                 src="/images/logo.png"
                 alt="BoldTap Logo"
-                className="h-full w-full object-cover"
-                loading="eager"
+                fill
+                sizes="(max-width: 768px) 64px, 80px"
+                className="object-cover"
+                priority
               />
             </div>
           </Link>

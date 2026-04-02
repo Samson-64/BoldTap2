@@ -71,7 +71,7 @@ export default function AdminDashboardPage() {
 
   const handleLogout = () => {
     logoutAdmin();
-    router.push("/admin/login");
+    router.replace("/admin/login");
   };
 
   return (

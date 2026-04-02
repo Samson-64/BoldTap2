@@ -284,9 +284,10 @@ export async function apiDeleteNfcProfile(): Promise<ApiResponse<null>> {
 // Add these type definitions at the top of the file
 export interface User {
   id: string;
+  userId?: string;
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
   createdAt: string;
   updatedAt: string;
 }

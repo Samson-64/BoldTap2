@@ -23,6 +23,10 @@ import {
 } from "@/contexts/lib/nfcProfile";
 import NfcBusinessCardView from "@/components/NfcBusinessCardView";
 
+type EditableProfileData = NfcProfileData & {
+  profilePicture: null;
+};
+
 // Memoized sidebar component
 function Sidebar({
   activeTab,
@@ -62,6 +66,7 @@ function Sidebar({
 
 // Memoized tab components
 function ProfileTab({ profileData }: { profileData: any }) {
+function ProfileTab({ profileData }: { profileData: EditableProfileData }) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
       <h2 className="text-3xl font-bold text-black mb-6">My Profile</h2>

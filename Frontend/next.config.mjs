@@ -9,8 +9,6 @@ const nextConfig = {
     unoptimized: false,
     formats: ["image/webp", "image/avif"],
   },
-  // Optimize compilation
-  swcMinify: true,
   // Reduce development overhead
   reactStrictMode: true,
   // Disable powered-by header

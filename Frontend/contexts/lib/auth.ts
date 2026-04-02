@@ -24,6 +24,14 @@ export interface AuthResponse {
   error?: string;
 }
 
+interface ApiUserShape {
+  id?: string;
+  userId?: string;
+  email: string;
+  name: string;
+  phone?: string;
+}
+
 const CURRENT_USER_KEY = "currentUser";
 const TOKEN_LIFETIME_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -57,6 +65,18 @@ function clearStoredCurrentUser(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(CURRENT_USER_KEY);
   sessionStorage.removeItem(CURRENT_USER_KEY);
+}
+
+function normalizeUser(user: ApiUserShape): User | null {
+  const id = user.id || user.userId;
+  if (!id) return null;
+
+  return {
+    id,
+    email: user.email,
+    name: user.name,
+    phone: user.phone,
+  };
 }
 
 // Validate password strength (OWASP recommendations)
@@ -140,7 +160,8 @@ export async function register(
   }
 
   const { user, token } = response.data || {};
-  if (!user || !token) {
+  const normalizedUser = user ? normalizeUser(user) : null;
+  if (!normalizedUser || !token) {
     return {
       success: false,
       error: "Invalid response from server",
@@ -152,25 +173,12 @@ export async function register(
 
   // Save user to localStorage for faster local access
   if (typeof window !== "undefined") {
-    persistCurrentUser(
-      {
-        id: user.id || user.userId,
-        email: user.email,
-        name: user.name,
-        phone: user.phone,
-      },
-      true,
-    );
+    persistCurrentUser(normalizedUser, true);
   }
 
   return {
     success: true,
-    user: {
-      id: user.id || user.userId,
-      email: user.email,
-      name: user.name,
-      phone: user.phone,
-    },
+    user: normalizedUser,
     token,
   };
 }
@@ -195,7 +203,8 @@ export async function login(
   }
 
   const { user, token } = response.data || {};
-  if (!user || !token) {
+  const normalizedUser = user ? normalizeUser(user) : null;
+  if (!normalizedUser || !token) {
     return {
       success: false,
       error: "Invalid response from server",
@@ -207,25 +216,12 @@ export async function login(
 
   // Save user to localStorage for faster local access
   if (typeof window !== "undefined") {
-    persistCurrentUser(
-      {
-        id: user.id || user.userId,
-        email: user.email,
-        name: user.name,
-        phone: user.phone,
-      },
-      rememberMe,
-    );
+    persistCurrentUser(normalizedUser, rememberMe);
   }
 
   return {
     success: true,
-    user: {
-      id: user.id || user.userId,
-      email: user.email,
-      name: user.name,
-      phone: user.phone,
-    },
+    user: normalizedUser,
     token,
   };
 }
@@ -251,13 +247,7 @@ export async function getCurrentUserFromServer(): Promise<User | null> {
     return null;
   }
 
-  const user = response.data.user;
-  return {
-    id: user.id || user.userId,
-    email: user.email,
-    name: user.name,
-    phone: user.phone,
-  };
+  return normalizeUser(response.data.user) ?? null;
 }
 
 // Get current user from local storage with validation
@@ -289,8 +279,8 @@ export function getCurrentUser(): User | null {
     }
 
     // Return clean user object without internal fields
-    const { _timestamp, ...user } = userData;
-    return user as User;
+    delete userData._timestamp;
+    return userData;
   } catch {
     clearStoredCurrentUser();
     return null;
