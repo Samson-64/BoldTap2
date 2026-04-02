@@ -5,7 +5,13 @@ import express, { Request, Response, NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { FRONTEND_URL, NODE_ENV, RATE_LIMIT_WINDOW_MS, RATE_LIMIT_MAX_REQUESTS, RATE_LIMIT_AUTH_MAX_REQUESTS } from "./config/env";
+import {
+  FRONTEND_URL,
+  NODE_ENV,
+  RATE_LIMIT_WINDOW_MS,
+  RATE_LIMIT_MAX_REQUESTS,
+  RATE_LIMIT_AUTH_MAX_REQUESTS,
+} from "./config/env";
 import { sendError } from "./utils/errors";
 
 // Routes
@@ -18,26 +24,28 @@ const app = express();
 // ============ SECURITY MIDDLEWARE ============
 
 // Security headers with helmet
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:"],
-      scriptSrc: ["'self'"],
-      connectSrc: ["'self'", FRONTEND_URL],
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https:"],
+        scriptSrc: ["'self'"],
+        connectSrc: ["'self'", FRONTEND_URL],
+      },
     },
-  },
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true,
-  },
-  noSniff: true,
-  xssFilter: true,
-  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
-}));
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
+    noSniff: true,
+    xssFilter: true,
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  }),
+);
 
 // CORS configuration
 const corsOptions = {
@@ -46,7 +54,11 @@ const corsOptions = {
   credentials: true,
   optionsSuccessStatus: 200,
   allowedHeaders: ["Content-Type", "Authorization"],
-  exposedHeaders: ["X-RateLimit-Limit", "X-RateLimit-Remaining", "X-RateLimit-Reset"],
+  exposedHeaders: [
+    "X-RateLimit-Limit",
+    "X-RateLimit-Remaining",
+    "X-RateLimit-Reset",
+  ],
 };
 app.use(cors(corsOptions));
 
@@ -83,15 +95,19 @@ const authLimiter = rateLimit({
 // ============ BODY PARSING ============
 
 // Body parsing middleware with size limits
-app.use(express.json({
-  limit: "10mb",
-  strict: true, // Only accept arrays and objects
-}));
-app.use(express.urlencoded({
-  limit: "10mb",
-  extended: true,
-  parameterLimit: 50, // Limit number of parameters
-}));
+app.use(
+  express.json({
+    limit: "10mb",
+    strict: true, // Only accept arrays and objects
+  }),
+);
+app.use(
+  express.urlencoded({
+    limit: "10mb",
+    extended: true,
+    parameterLimit: 50, // Limit number of parameters
+  }),
+);
 
 // ============ REQUEST LOGGING (DEV ONLY) ============
 
@@ -100,7 +116,9 @@ if (NODE_ENV === "development") {
     const start = Date.now();
     _res.on("finish", () => {
       const duration = Date.now() - start;
-      console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} ${_res.statusCode} - ${duration}ms`);
+      console.log(
+        `[${new Date().toISOString()}] ${req.method} ${req.path} ${_res.statusCode} - ${duration}ms`,
+      );
     });
     next();
   });

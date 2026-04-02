@@ -199,4 +199,5 @@ export function sanitizeInput(input: string): string {
 }
 
 // Bcrypt salt rounds for production (higher = more secure but slower)
-export const BCRYPT_SALT_ROUNDS = process.env.NODE_ENV === "production" ? 12 : 10;
+export const BCRYPT_SALT_ROUNDS =
+  process.env.NODE_ENV === "production" ? 12 : 10;
