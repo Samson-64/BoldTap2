@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Navigation from "@/components/Navigation";
-import { Linkedin, Facebook, Mail } from "lucide-react";
+// import { Linkedin, Facebook, Mail } from "lucide-react";
+import { FaFacebook, FaLinkedin } from "react-icons/fa";
 import { useAuth } from "@/contexts/AuthContext";
 import { validatePassword } from "@/contexts/lib/auth";
 import { Loader2, AlertCircle } from "lucide-react";
+import { IoMailSharp } from "react-icons/io5";
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -272,13 +274,13 @@ export default function RegisterPage() {
 
               <div className="mt-6 grid grid-cols-3 gap-3">
                 <button className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  <Linkedin className="w-5 h-5 text-gray-700" />
+                  <FaLinkedin className="w-5 h-5 text-gray-700" />
                 </button>
                 <button className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  <Facebook className="w-5 h-5 text-gray-700" />
+                  <FaFacebook className="w-5 h-5 text-gray-700" />
                 </button>
                 <button className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                  <Mail className="w-5 h-5 text-gray-700" />
+                  <IoMailSharp className="w-5 h-5 text-gray-700" />
                 </button>
               </div>
             </div>
