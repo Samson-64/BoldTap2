@@ -18,7 +18,9 @@ interface PublicLoyaltyState {
   visitor: LoyaltyCustomer | null;
 }
 
-async function loadPublicLoyaltyState(slug: string): Promise<Omit<PublicLoyaltyState, "isHydrated">> {
+async function loadPublicLoyaltyState(
+  slug: string,
+): Promise<Omit<PublicLoyaltyState, "isHydrated">> {
   if (!slug) {
     return {
       merchantId: null,
@@ -30,7 +32,8 @@ async function loadPublicLoyaltyState(slug: string): Promise<Omit<PublicLoyaltyS
   const merchantId = findUserIdByLoyaltySlug(slug);
   const pack = getPublicLoyaltyCardBySlug(slug);
   const visitorId = merchantId ? getStoredVisitorCustomerId(merchantId) : null;
-  const visitor = merchantId && visitorId ? getCustomer(merchantId, visitorId) : null;
+  const visitor =
+    merchantId && visitorId ? getCustomer(merchantId, visitorId) : null;
 
   return {
     merchantId,

@@ -105,7 +105,7 @@ export async function getCurrentUser(req: AuthenticatedRequest, res: Response) {
         id: user.id,
         name: user.name,
         email: user.email,
-      }
+      },
     });
   } catch (error: unknown) {
     return sendError(res, error as Error);

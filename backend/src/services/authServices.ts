@@ -5,7 +5,11 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { db } from "../config/db";
 import { JWT_SECRET, JWT_EXPIRES_IN, JWT_ALGORITHM } from "../config/env";
-import { validatePassword, validateEmail, BCRYPT_SALT_ROUNDS } from "../utils/errors";
+import {
+  validatePassword,
+  validateEmail,
+  BCRYPT_SALT_ROUNDS,
+} from "../utils/errors";
 import { cache } from "../utils/cache";
 import type { UserProfile } from "../types/index";
 
@@ -71,7 +75,10 @@ export async function register(input: RegisterInput): Promise<AuthResponse> {
     }
 
     // Hash password with secure salt rounds
-    const hashedPassword = await bcrypt.hash(input.password, BCRYPT_SALT_ROUNDS);
+    const hashedPassword = await bcrypt.hash(
+      input.password,
+      BCRYPT_SALT_ROUNDS,
+    );
 
     // Create user
     const user = await db.users.create({
