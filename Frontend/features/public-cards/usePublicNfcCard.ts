@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  getPublicCardBySlug,
-  type NfcProfileData,
-} from "@/contexts/lib/nfcProfile";
+import type { NfcProfileData } from "@/contexts/lib/nfcProfile";
 
 export interface PublicNfcCardData {
   profile: NfcProfileData | null;
@@ -24,6 +21,7 @@ export function usePublicNfcCard(slug: string) {
     }
 
     const fetchData = async () => {
+      const { getPublicCardBySlug } = await import("@/contexts/lib/nfcProfile");
       const result = await getPublicCardBySlug(slug);
       setData(result);
     };

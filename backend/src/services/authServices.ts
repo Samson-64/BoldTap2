@@ -1,8 +1,7 @@
 // Authentication services
 // Handles business logic for registration, login, and user management
 
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
+import type jwt from "jsonwebtoken";
 import { db } from "../config/db";
 import { JWT_SECRET, JWT_EXPIRES_IN, JWT_ALGORITHM } from "../config/env";
 import {
@@ -75,6 +74,7 @@ export async function register(input: RegisterInput): Promise<AuthResponse> {
     }
 
     // Hash password with secure salt rounds
+    const { default: bcrypt } = await import("bcrypt");
     const hashedPassword = await bcrypt.hash(
       input.password,
       BCRYPT_SALT_ROUNDS,
@@ -89,7 +89,7 @@ export async function register(input: RegisterInput): Promise<AuthResponse> {
     });
 
     // Generate token
-    const token = generateToken({
+    const token = await generateToken({
       userId: user.id,
       email: user.email,
     });
@@ -133,6 +133,7 @@ export async function login(input: LoginInput): Promise<AuthResponse> {
     }
 
     // Compare passwords
+    const { default: bcrypt } = await import("bcrypt");
     const passwordMatch = await bcrypt.compare(input.password, user.password);
     if (!passwordMatch) {
       return {
@@ -142,7 +143,7 @@ export async function login(input: LoginInput): Promise<AuthResponse> {
     }
 
     // Generate token
-    const token = generateToken({
+    const token = await generateToken({
       userId: user.id,
       email: user.email,
     });
@@ -244,6 +245,7 @@ export async function changePassword(
     }
 
     // Verify old password
+    const { default: bcrypt } = await import("bcrypt");
     const passwordMatch = await bcrypt.compare(oldPassword, user.password);
     if (!passwordMatch) {
       return { success: false, error: "Incorrect current password" };
@@ -269,8 +271,9 @@ export async function changePassword(
 }
 
 // Verify token
-export function verifyToken(token: string): TokenData | null {
+export async function verifyToken(token: string): Promise<TokenData | null> {
   try {
+    const { default: jwt } = await import("jsonwebtoken");
     const decoded = jwt.verify(token, JWT_SECRET) as TokenData;
     return decoded;
   } catch {
@@ -279,7 +282,8 @@ export function verifyToken(token: string): TokenData | null {
 }
 
 // Generate JWT token
-function generateToken(data: TokenData): string {
+async function generateToken(data: TokenData): Promise<string> {
+  const { default: jwt } = await import("jsonwebtoken");
   return jwt.sign(
     data,
     JWT_SECRET as string,

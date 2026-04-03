@@ -1,9 +1,39 @@
 "use strict";
 // Authentication services
 // Handles business logic for registration, login, and user management
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.register = register;
 exports.login = login;
@@ -12,8 +42,6 @@ exports.updateProfile = updateProfile;
 exports.changePassword = changePassword;
 exports.verifyToken = verifyToken;
 exports.emailExists = emailExists;
-const bcrypt_1 = __importDefault(require("bcrypt"));
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const db_1 = require("../config/db");
 const env_1 = require("../config/env");
 const errors_1 = require("../utils/errors");
@@ -52,7 +80,8 @@ async function register(input) {
             };
         }
         // Hash password with secure salt rounds
-        const hashedPassword = await bcrypt_1.default.hash(input.password, errors_1.BCRYPT_SALT_ROUNDS);
+        const { default: bcrypt } = await Promise.resolve().then(() => __importStar(require("bcrypt")));
+        const hashedPassword = await bcrypt.hash(input.password, errors_1.BCRYPT_SALT_ROUNDS);
         // Create user
         const user = await db_1.db.users.create({
             name: input.name,
@@ -61,7 +90,7 @@ async function register(input) {
             password: hashedPassword,
         });
         // Generate token
-        const token = generateToken({
+        const token = await generateToken({
             userId: user.id,
             email: user.email,
         });
@@ -102,7 +131,8 @@ async function login(input) {
             };
         }
         // Compare passwords
-        const passwordMatch = await bcrypt_1.default.compare(input.password, user.password);
+        const { default: bcrypt } = await Promise.resolve().then(() => __importStar(require("bcrypt")));
+        const passwordMatch = await bcrypt.compare(input.password, user.password);
         if (!passwordMatch) {
             return {
                 success: false,
@@ -110,7 +140,7 @@ async function login(input) {
             };
         }
         // Generate token
-        const token = generateToken({
+        const token = await generateToken({
             userId: user.id,
             email: user.email,
         });
@@ -198,7 +228,8 @@ async function changePassword(userId, oldPassword, newPassword) {
             return { success: false, error: "User not found" };
         }
         // Verify old password
-        const passwordMatch = await bcrypt_1.default.compare(oldPassword, user.password);
+        const { default: bcrypt } = await Promise.resolve().then(() => __importStar(require("bcrypt")));
+        const passwordMatch = await bcrypt.compare(oldPassword, user.password);
         if (!passwordMatch) {
             return { success: false, error: "Incorrect current password" };
         }
@@ -208,7 +239,7 @@ async function changePassword(userId, oldPassword, newPassword) {
             return { success: false, error: validation.error };
         }
         // Hash and save new password with secure salt rounds
-        const hashedPassword = await bcrypt_1.default.hash(newPassword, errors_1.BCRYPT_SALT_ROUNDS);
+        const hashedPassword = await bcrypt.hash(newPassword, errors_1.BCRYPT_SALT_ROUNDS);
         await db_1.db.users.update(userId, { password: hashedPassword });
         return { success: true };
     }
@@ -220,9 +251,10 @@ async function changePassword(userId, oldPassword, newPassword) {
     }
 }
 // Verify token
-function verifyToken(token) {
+async function verifyToken(token) {
     try {
-        const decoded = jsonwebtoken_1.default.verify(token, env_1.JWT_SECRET);
+        const { default: jwt } = await Promise.resolve().then(() => __importStar(require("jsonwebtoken")));
+        const decoded = jwt.verify(token, env_1.JWT_SECRET);
         return decoded;
     }
     catch {
@@ -230,8 +262,9 @@ function verifyToken(token) {
     }
 }
 // Generate JWT token
-function generateToken(data) {
-    return jsonwebtoken_1.default.sign(data, env_1.JWT_SECRET, {
+async function generateToken(data) {
+    const { default: jwt } = await Promise.resolve().then(() => __importStar(require("jsonwebtoken")));
+    return jwt.sign(data, env_1.JWT_SECRET, {
         expiresIn: env_1.JWT_EXPIRES_IN,
         algorithm: env_1.JWT_ALGORITHM,
     });

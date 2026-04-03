@@ -3,7 +3,7 @@
 // If the token is valid, it attaches the decoded user information to the request object
 
 import type { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
+import type jwt from "jsonwebtoken";
 import { JWT_SECRET, JWT_ALGORITHM } from "../config/env";
 import { db } from "../config/db";
 import { AuthenticationError } from "../utils/errors";
@@ -36,6 +36,7 @@ export async function authenticate(
     const token = parts[1];
 
     // Verify token with explicit algorithm
+    const { default: jwt } = await import("jsonwebtoken");
     const decoded = jwt.verify(token, JWT_SECRET, {
       algorithms: [JWT_ALGORITHM as jwt.Algorithm],
     }) as unknown as {
@@ -60,16 +61,17 @@ export async function authenticate(
 
     next();
   } catch (error) {
-    if (error instanceof jwt.JsonWebTokenError) {
+    const err = error as Error;
+    if (err.name === "JsonWebTokenError") {
       res.status(401).json({
         success: false,
         error: "Invalid token",
-        message: error.message,
+        message: err.message,
       });
       return;
     }
 
-    if (error instanceof jwt.TokenExpiredError) {
+    if (err.name === "TokenExpiredError") {
       res.status(401).json({
         success: false,
         error: "Token expired",

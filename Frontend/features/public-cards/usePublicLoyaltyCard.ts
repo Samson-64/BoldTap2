@@ -1,20 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { getPublicLoyaltyCardBySlug } from "@/contexts/lib/loyaltyCard";
-import {
-  addCustomer,
-  getCustomer,
-  getStoredVisitorCustomerId,
-  setStoredVisitorCustomerId,
-  type LoyaltyCustomer,
-} from "@/contexts/lib/loyaltyCustomers";
-import { findUserIdByLoyaltySlug } from "@/contexts/lib/userRegistry";
+import type { LoyaltyCustomer } from "@/contexts/lib/loyaltyCustomers";
 
 interface PublicLoyaltyState {
   isHydrated: boolean;
   merchantId: string | null;
-  pack: ReturnType<typeof getPublicLoyaltyCardBySlug>;
+  pack: any; // Will be typed dynamically
   visitor: LoyaltyCustomer | null;
 }
 
@@ -28,6 +20,13 @@ async function loadPublicLoyaltyState(
       visitor: null,
     };
   }
+
+  const { findUserIdByLoyaltySlug } =
+    await import("@/contexts/lib/userRegistry");
+  const { getPublicLoyaltyCardBySlug } =
+    await import("@/contexts/lib/loyaltyCard");
+  const { getStoredVisitorCustomerId, getCustomer } =
+    await import("@/contexts/lib/loyaltyCustomers");
 
   const merchantId = findUserIdByLoyaltySlug(slug);
   const pack = getPublicLoyaltyCardBySlug(slug);
@@ -70,7 +69,7 @@ export function usePublicLoyaltyCard(slug: string) {
   }, [slug]);
 
   const joinProgram = useCallback(
-    (input: { name: string; phone?: string }) => {
+    async (input: { name: string; phone?: string }) => {
       const name = input.name.trim();
       const phone = input.phone?.trim() || undefined;
 
@@ -78,9 +77,12 @@ export function usePublicLoyaltyCard(slug: string) {
         return false;
       }
 
+      const { addCustomer, setStoredVisitorCustomerId } =
+        await import("@/contexts/lib/loyaltyCustomers");
+
       const customer = addCustomer(state.merchantId, { name, phone });
       setStoredVisitorCustomerId(state.merchantId, customer.id);
-      refresh();
+      await refresh();
 
       return true;
     },

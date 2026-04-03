@@ -1,4 +1,15 @@
-import PublicLoyaltyPageClient from "@/features/public-cards/PublicLoyaltyPageClient";
+import dynamic from "next/dynamic";
+
+const PublicLoyaltyPageClient = dynamic(
+  () => import("@/features/public-cards/PublicLoyaltyPageClient"),
+  {
+    loading: () => (
+      <div className="min-h-screen bg-[#f5f0ee] flex items-center justify-center">
+        <p className="text-gray-600">Loading…</p>
+      </div>
+    ),
+  },
+);
 
 type PageProps = {
   params: Promise<{ slug: string }> | { slug: string };
