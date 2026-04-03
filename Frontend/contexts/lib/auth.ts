@@ -32,6 +32,8 @@ interface ApiUserShape {
   phone?: string;
 }
 
+type CurrentUserPayload = ApiUserShape | { user?: ApiUserShape };
+
 const CURRENT_USER_KEY = "currentUser";
 const TOKEN_LIFETIME_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -77,6 +79,10 @@ function normalizeUser(user: ApiUserShape): User | null {
     name: user.name,
     phone: user.phone,
   };
+}
+
+function isApiUserShape(value: CurrentUserPayload | undefined): value is ApiUserShape {
+  return !!value && typeof value === "object" && "email" in value && "name" in value;
 }
 
 // Validate password strength (OWASP recommendations)
@@ -243,11 +249,14 @@ export async function logout(): Promise<void> {
 export async function getCurrentUserFromServer(): Promise<User | null> {
   const response = await apiGetCurrentUser();
 
-  if (!response.success || !response.data?.user) {
+  if (!response.success || !response.data) {
     return null;
   }
 
-  return normalizeUser(response.data.user) ?? null;
+  const payload = response.data as CurrentUserPayload;
+  const apiUser =
+    "user" in payload ? payload.user : isApiUserShape(payload) ? payload : undefined;
+  return apiUser ? normalizeUser(apiUser) : null;
 }
 
 // Get current user from local storage with validation

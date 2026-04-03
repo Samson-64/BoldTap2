@@ -99,7 +99,14 @@ export async function getCurrentUser(req: AuthenticatedRequest, res: Response) {
       return sendError(res, "User not found", 404);
     }
 
-    return sendSuccess(res, { user });
+    // Limit response to required fields only
+    return sendSuccess(res, {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      }
+    });
   } catch (error: unknown) {
     return sendError(res, error as Error);
   }

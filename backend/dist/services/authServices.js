@@ -17,6 +17,7 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const db_1 = require("../config/db");
 const env_1 = require("../config/env");
 const errors_1 = require("../utils/errors");
+const cache_1 = require("../utils/cache");
 // Register a new user
 async function register(input) {
     try {
@@ -134,15 +135,21 @@ async function login(input) {
 // Get user by ID
 async function getUserById(userId) {
     try {
+        const cacheKey = `user:${userId}`;
+        const cached = cache_1.cache.get(cacheKey);
+        if (cached)
+            return cached;
         const user = await db_1.db.users.findById(userId);
         if (!user)
             return null;
-        return {
+        const profile = {
             id: user.id,
             name: user.name,
             email: user.email,
             phone: user.phone,
         };
+        cache_1.cache.set(cacheKey, profile);
+        return profile;
     }
     catch (error) {
         console.error("Error fetching user:", error);

@@ -72,11 +72,11 @@ export function saveNfcProfile(userId: string, data: NfcProfileData): void {
 }
 
 /** Public card: resolve only by secret slug — never by user id from the client URL. */
-export function getPublicCardBySlug(slug: string): {
+export async function getPublicCardBySlug(slug: string): Promise<{
   profile: NfcProfileData | null;
   fallbackName: string;
   fallbackEmail: string;
-} | null {
+} | null> {
   const userId = findUserIdByPublicSlug(slug);
   if (!userId) return null;
   const account = getAccountByIdForPublic(userId);

@@ -66,13 +66,14 @@ async function getUserLoyaltyBusinesses(userId) {
 // Create loyalty card
 async function createLoyaltyCard(input) {
     try {
-        // Check if business exists
-        const business = await db_1.db.loyaltyBusinesses.findById(input.businessId);
+        // Check if business exists and if card already exists in parallel
+        const [business, existing] = await Promise.all([
+            db_1.db.loyaltyBusinesses.findById(input.businessId),
+            db_1.db.loyaltyCards.findByBusinessAndUser(input.businessId, input.userId),
+        ]);
         if (!business) {
             return { success: false, error: "Business not found" };
         }
-        // Check if card already exists for this user-business combination
-        const existing = await db_1.db.loyaltyCards.findByBusinessAndUser(input.businessId, input.userId);
         if (existing) {
             return { data: existing, success: true }; // Return existing card instead of error
         }

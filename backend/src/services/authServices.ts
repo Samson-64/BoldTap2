@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { db } from "../config/db";
 import { JWT_SECRET, JWT_EXPIRES_IN, JWT_ALGORITHM } from "../config/env";
 import { validatePassword, validateEmail, BCRYPT_SALT_ROUNDS } from "../utils/errors";
+import { cache } from "../utils/cache";
 import type { UserProfile } from "../types/index";
 
 interface RegisterInput {
@@ -160,15 +161,22 @@ export async function login(input: LoginInput): Promise<AuthResponse> {
 // Get user by ID
 export async function getUserById(userId: string): Promise<UserProfile | null> {
   try {
+    const cacheKey = `user:${userId}`;
+    const cached = cache.get<UserProfile>(cacheKey);
+    if (cached) return cached;
+
     const user = await db.users.findById(userId);
     if (!user) return null;
 
-    return {
+    const profile: UserProfile = {
       id: user.id,
       name: user.name,
       email: user.email,
       phone: user.phone,
     };
+
+    cache.set(cacheKey, profile);
+    return profile;
   } catch (error) {
     console.error("Error fetching user:", error);
     return null;

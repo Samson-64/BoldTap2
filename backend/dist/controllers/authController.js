@@ -122,7 +122,14 @@ async function getCurrentUser(req, res) {
         if (!user) {
             return (0, errors_1.sendError)(res, "User not found", 404);
         }
-        return (0, errors_1.sendSuccess)(res, { user });
+        // Limit response to required fields only
+        return (0, errors_1.sendSuccess)(res, {
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+            }
+        });
     }
     catch (error) {
         return (0, errors_1.sendError)(res, error);
